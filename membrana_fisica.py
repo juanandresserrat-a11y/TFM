@@ -13,28 +13,52 @@ OUTPUT_DIR = "membrana_fisica_output"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
+LIPID_PROPERTIES = {
+    'POPC': {
+        'area': 64.3,
+        'volume': 1230,
+        'tail_length': 14.5,
+        'headgroup_thickness': 9.0,
+        'color': '#FFA500'
+    },
+    'DOPS': {
+        'area': 59.7,
+        'volume': 1179,
+        'tail_length': 14.2,
+        'headgroup_thickness': 9.5,
+        'color': '#FF4500'
+    },
+    'PIP2': {
+        'area': 75.0,
+        'volume': 1450,
+        'tail_length': 14.8,
+        'headgroup_thickness': 12.0,
+        'color': '#FFFF00'
+    },
+    'CHOL': {
+        'area': 38.5,
+        'volume': 630,
+        'tail_length': 17.0,
+        'headgroup_thickness': 4.0,
+        'color': '#FFFFFF'
+    },
+    'SM': {
+        'area': 47.0,
+        'volume': 1100,
+        'tail_length': 16.5,
+        'headgroup_thickness': 10.0,
+        'color': '#FFD700'
+    }
+}
+
+
 class PropiedadesFisicas:
     def __init__(self):
-        self.areas = {
-            'POPC': 64.3, 'DOPS': 59.7, 'PIP2': 75.0,
-            'CHOL': 38.5, 'SM': 47.0
-        }
-        self.volumenes = {
-            'POPC': 1230, 'DOPS': 1179, 'PIP2': 1450,
-            'CHOL': 630, 'SM': 1100
-        }
-        self.longitud_colas = {
-            'POPC': 14.5, 'DOPS': 14.2, 'PIP2': 14.8,
-            'CHOL': 17.0, 'SM': 16.5
-        }
-        self.grosor_cabezas = {
-            'POPC': 9.0, 'DOPS': 9.5, 'PIP2': 12.0,
-            'CHOL': 4.0, 'SM': 10.0
-        }
-        self.colores = {
-            'POPC': '#FFA500', 'CHOL': '#FFFFFF', 'SM': '#FFD700',
-            'DOPS': '#FF4500', 'PIP2': '#FFFF00'
-        }
+        self.areas = {k: v['area'] for k, v in LIPID_PROPERTIES.items()}
+        self.volumenes = {k: v['volume'] for k, v in LIPID_PROPERTIES.items()}
+        self.longitud_colas = {k: v['tail_length'] for k, v in LIPID_PROPERTIES.items()}
+        self.grosor_cabezas = {k: v['headgroup_thickness'] for k, v in LIPID_PROPERTIES.items()}
+        self.colores = {k: v['color'] for k, v in LIPID_PROPERTIES.items()}
 
 
 class MembranaFisica:
@@ -69,24 +93,32 @@ class MembranaFisica:
         lipidos = []
         area = self.props.areas[tipo_lipido]
         d = np.sqrt(area * 2 / np.sqrt(3))
-        nx = int(self.tamano[0] / d) + 1
-        ny = int(self.tamano[1] / (d * np.sqrt(3) / 2)) + 1
+        
         posiciones = []
-        for i in range(nx):
-            for j in range(ny):
-                x = i * d
-                y = j * d * np.sqrt(3) / 2
-                if j % 2 == 1:
-                    x += d / 2
-                jitter = 0.1
-                x += np.random.uniform(-d * jitter, d * jitter)
-                y += np.random.uniform(-d * jitter, d * jitter)
-                # Solo añadir si está dentro de los límites
-                if 0 <= x < self.tamano[0] and 0 <= y < self.tamano[1]:
-                    if len(posiciones) < num_lipidos:
-                        posiciones.append((x, y))
+        intentos = 0
+        max_intentos = num_lipidos * 20
+        
+        while len(posiciones) < num_lipidos and intentos < max_intentos:
+            x = np.random.uniform(0, self.tamano[0])
+            y = np.random.uniform(0, self.tamano[1])
+            
+            if len(posiciones) == 0:
+                posiciones.append((x, y))
+            else:
+                demasiado_cerca = False
+                for px, py in posiciones:
+                    dist = np.sqrt((x - px)**2 + (y - py)**2)
+                    if dist < d * 0.8:
+                        demasiado_cerca = True
+                        break
+                
+                if not demasiado_cerca:
+                    posiciones.append((x, y))
+            
+            intentos += 1
+        
         long_cola = self.props.longitud_colas[tipo_lipido]
-        for x, y in posiciones[:num_lipidos]:
+        for x, y in posiciones:
             z_head = z_pos
             z_tail = z_head - long_cola if lado == 'superior' else z_head + long_cola
             ang = np.random.uniform(10, 15) * np.pi / 180
