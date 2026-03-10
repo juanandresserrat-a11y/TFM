@@ -1,0 +1,6 @@
+PROPIEDADES DE LA MEMBRANA
+Tamaño: 15.0 x 15.0 nm
+Grosor hidrofóbico: 31.1 Å
+Grosor total: 46.6 Å
+Total lípidos: 837
+Densidad: 3.72 lípidos/nm²
