@@ -13,15 +13,6 @@ OUTPUT_DIR = "membrana_simple_output"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
-LIPID_DATA = {
-    'POPC': {'tail_length': 14.5, 'color': '#FFA500'},
-    'CHOL': {'tail_length': 17.0, 'color': '#FFFFFF'},
-    'SM': {'tail_length': 16.5, 'color': '#FFD700'},
-    'DOPS': {'tail_length': 14.2, 'color': '#FF4500'},
-    'PIP2': {'tail_length': 14.8, 'color': '#FFFF00'}
-}
-
-
 class LipidMembraneMini:
     def __init__(self, size=(50, 50), num_lipids=200):
         self.size = size
@@ -30,6 +21,10 @@ class LipidMembraneMini:
         self.composition = {
             'upper': {'POPC': 0.50, 'CHOL': 0.30, 'SM': 0.20},
             'lower': {'POPC': 0.45, 'DOPS': 0.25, 'PIP2': 0.05, 'CHOL': 0.25}
+        }
+        self.colors = {
+            'POPC': '#FFA500', 'CHOL': '#FFFFFF', 'SM': '#FFD700',
+            'DOPS': '#FF4500', 'PIP2': '#FFFF00'
         }
         self.upper_leaflet = []
         self.lower_leaflet = []
@@ -53,21 +48,19 @@ class LipidMembraneMini:
         lipids = []
         conteo = self._distribuir_lipidos(leaflet)
         for lip_type, num in conteo.items():
-            tail_length = LIPID_DATA[lip_type]['tail_length']
-            color = LIPID_DATA[lip_type]['color']
             for _ in range(num):
                 x = np.random.uniform(0, self.size[0])
                 y = np.random.uniform(0, self.size[1])
                 z_head = z_position
                 if leaflet == 'upper':
-                    z_tail = z_head - tail_length
+                    z_tail = z_head - 15
                 else:
-                    z_tail = z_head + tail_length
+                    z_tail = z_head + 15
                 lipids.append({
                     'type': lip_type,
                     'head': np.array([x, y, z_head]),
                     'tail': np.array([x, y, z_tail]),
-                    'color': color
+                    'color': self.colors[lip_type]
                 })
         return lipids
 
