@@ -1,5 +1,6 @@
 """
 physics.py
+==========
 Física de la bicapa: curvatura Helfrich y generación de cadenas acil.
 
 Funciones puras (sin estado): reciben parámetros y devuelven resultados.
@@ -69,6 +70,8 @@ def generate_helfrich_map(
 ) -> np.ndarray:
     """
     Genera un campo de alturas h(x,y) con espectro de Helfrich completo:
+
+        <|h_q|²> = kBT / (kc·q⁴ + σ·q²)
 
     donde kc controla los modos de alta q (bending) y σ suprime
     los modos de larga longitud de onda (tensión superficial) [4, 5].

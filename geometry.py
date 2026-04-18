@@ -1,5 +1,6 @@
 """
 geometry.py
+===========
 Dataclasses de geometría y de instancias lipídicas individuales.
 
 Separado de lipid_types.py para que las estructuras de datos que

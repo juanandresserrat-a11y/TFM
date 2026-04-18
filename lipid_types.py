@@ -1,5 +1,6 @@
 """
 lipid_types.py
+==============
 Definiciones de tipos lipídicos y composiciones de membrana.
 
 Este módulo es de solo lectura: no depende de ningún otro módulo

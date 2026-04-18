@@ -1,0 +1,5 @@
+numpy>=1.16
+scipy>=1.4
+matplotlib>=3.0
+mrcfile>=1.1
+dataclasses>=0.6; python_version < "3.7"

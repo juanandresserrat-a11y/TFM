@@ -1,5 +1,6 @@
 """
 analysis.py
+===========
 Funciones de análisis cuantitativo de la bicapa.
 
 Todas las funciones reciben un objeto BicapaCryoET ya construido

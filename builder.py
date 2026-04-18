@@ -1,13 +1,19 @@
 """
 builder.py
+==========
 Clase BicapaCryoET: construcción y organización de la bicapa.
 
-  - Muestreo de composición (Dirichlet)
+Responsabilidades de este módulo:
+  - Muestreo estocástico de composición (Dirichlet)
   - Cálculo de geometría media
   - Generación de curvatura Helfrich
   - Poblado de monocapas (grilla hexagonal + jitter)
   - Inserción de perturbadores
   - Detección de dominios (BFS sobre KDTree)
+
+Los métodos de análisis (mapas 2D/3D) están en analysis.py.
+Las figuras están en visualization.py.
+La exportación de training en export.py.
 
 Referencias:
   [4, 5]  Helfrich / Pinigin – curvatura
@@ -40,7 +46,20 @@ OUTPUT_DIR = "CryoET"
 
 
 class BicapaCryoET:
-    """Instantánea estática de membrana plasmática de mamífero."""
+    """
+    Instantánea estática de membrana plasmática de mamífero.
+
+    La semilla controla toda la aleatoriedad: composición (Dirichlet),
+    curvatura (Helfrich), posiciones y dominios lipídicos.
+
+    Uso básico
+    ----------
+    b = BicapaCryoET(size_nm=(50, 50), seed=42)
+    b.build()
+    # → análisis:       from analysis import AnalysisMixin
+    # → visualización:  from visualization import plot_all
+    # → exportación:    from export import export_training
+    """
 
     def __init__(self, size_nm: Tuple[float, float] = (50, 50), seed: int = 42):
         self.seed = seed
@@ -246,14 +265,14 @@ class BicapaCryoET:
             f for k, f in composition.items()
             if LIPID_TYPES.get(k, _null_lt()).is_raft
         )
-        n_nuc = max(3, int((self.Lx / 10) * (self.Ly / 10) * fr_raft / 100))
+        n_nuc = max(2, int(np.sqrt((self.Lx / 10) * (self.Ly / 10) * fr_raft / 50)))
         raft_centers = [
             (self.rng.uniform(0.1 * self.Lx, 0.9 * self.Lx),
              self.rng.uniform(0.1 * self.Ly, 0.9 * self.Ly))
             for _ in range(n_nuc)
         ]
         raft_radius = (
-            np.sqrt(self.Lx * self.Ly * fr_raft / (np.pi * n_nuc)) * 0.75
+            np.sqrt(self.Lx * self.Ly * fr_raft / (np.pi * n_nuc)) * 1.2
         )
 
 

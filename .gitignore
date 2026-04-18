@@ -5,11 +5,5 @@ __pycache__/
 # Jupyter
 .ipynb_checkpoints/
 
-# Datos pesados (ajusta según quieras subirlos o no)
-*.npy
-
-# Imágenes generadas (resultados)
-*.png
-
 # Sistema
 .DS_Store

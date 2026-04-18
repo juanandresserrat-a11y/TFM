@@ -1,5 +1,6 @@
 """
 visualization.py
+================
 Generación de figuras para la bicapa lipídica.
 
 Cada función plot_*() recibe un BicapaCryoET ya construido, genera
