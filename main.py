@@ -22,7 +22,7 @@ import argparse
 import os
 import sys
 
-
+sys.path.insert(0, "/home/alumno25/.local/lib/python3.6/site-packages")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from builder import BicapaCryoET
