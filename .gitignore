@@ -1,20 +1,13 @@
-# Datos pesados de entrenamiento y simulación
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+venv/
 *.npy
 *.mrc
 *.csv
 *.pdb
 *.json
 *.log
-
-# Directorios de output (excepto PNGs)
 CryoET/training/
 CryoET/mrc/
 CryoET/positions/
-CryoET/stats/
-CryoET/validation/
-
-__pycache__/
-
-*.pyc
-
-.ipynb_checkpoints/
