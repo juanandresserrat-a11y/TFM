@@ -167,32 +167,41 @@ def apply_missing_wedge(
     volume: np.ndarray,
     tilt_max_deg: float = 60.0,
     tilt_axis: int = 1,
+    tilt_min_deg: float = None,
+    randomize: bool = False,
+    rng=None,
 ) -> np.ndarray:
     """
     Aplica el artefacto de cuña perdida (missing wedge) a un volumen 3D.
 
-    En cryo-ET la muestra se inclina tipicamente ±60-70°. Los angulos
-    no accesibles dejan una region del espacio de Fourier sin datos
-    (la 'cuña perdida'). Se ponen a cero los componentes de Fourier
-    fuera del rango de inclinacion accesible.
-
-    El eje de inclinacion por convenio es Y (tilt_axis=1).
-    La cuña se extiende en el plano XZ del espacio de Fourier.
+    Soporta rangos de inclinacion asimetricos y ejes variables para
+    mejorar la generalizacion de redes neuronales entrenadas con el dataset.
 
     Parametros
     ----------
-    volume : np.ndarray, shape (Nx, Ny, Nz)
-        Volumen 3D de densidad.
     tilt_max_deg : float
-        Semi-angulo maximo de inclinacion (grados). Tipico: 60-70.
-    tilt_axis : int
-        Eje alrededor del cual se inclina (0=X, 1=Y, 2=Z).
+        Semi-angulo positivo maximo (grados).
+    tilt_min_deg : float, opcional
+        Semi-angulo negativo (si None, usa -tilt_max_deg → simetrico).
+    randomize : bool
+        Si True, randomiza el eje de inclinacion y el rango.
+        Util para data augmentation.
+    rng : np.random.Generator, opcional
+        Generador para reproducibilidad al usar randomize=True.
 
-    Retorna
-    -------
-    np.ndarray
-        Volumen con missing wedge aplicado.
+    Referencia:
+      MemBrain-seg augmentation strategy — github.com/teamtomo/membrain-seg
     """
+    if randomize:
+        if rng is None:
+            rng = np.random.default_rng()
+        tilt_axis    = int(rng.integers(0, 3))
+        tilt_max_deg = float(rng.uniform(55.0, 70.0))
+        tilt_min_deg = float(rng.uniform(-70.0, -55.0))
+    else:
+        if tilt_min_deg is None:
+            tilt_min_deg = -tilt_max_deg
+
     Nx, Ny, Nz = volume.shape
     V_ft = np.fft.fftn(volume)
 
@@ -203,17 +212,16 @@ def apply_missing_wedge(
 
     if tilt_axis == 1:
         q_perp = np.sqrt(Fx**2 + Fz**2)
-        angle = np.degrees(np.arctan2(np.abs(Fy), q_perp + 1e-12))
+        angle  = np.degrees(np.arctan2(Fy, q_perp + 1e-12))
     elif tilt_axis == 0:
         q_perp = np.sqrt(Fy**2 + Fz**2)
-        angle = np.degrees(np.arctan2(np.abs(Fx), q_perp + 1e-12))
+        angle  = np.degrees(np.arctan2(Fx, q_perp + 1e-12))
     else:
         q_perp = np.sqrt(Fx**2 + Fy**2)
-        angle = np.degrees(np.arctan2(np.abs(Fz), q_perp + 1e-12))
+        angle  = np.degrees(np.arctan2(Fz, q_perp + 1e-12))
 
-    wedge_mask = angle <= tilt_max_deg
-    V_ft_masked = V_ft * wedge_mask
-    volume_mw = np.real(np.fft.ifftn(V_ft_masked))
+    wedge_mask = (angle >= tilt_min_deg) & (angle <= tilt_max_deg)
+    volume_mw  = np.real(np.fft.ifftn(V_ft * wedge_mask))
     return volume_mw
 
 

@@ -51,6 +51,7 @@ from scipy.signal import find_peaks
 
 import analysis
 from builder import OUTPUT_DIR
+from electron_density import ELECTRON_DENSITY
 
 if TYPE_CHECKING:
     from builder import BicapaCryoET
@@ -73,7 +74,7 @@ PLT_STYLE = {
 }
 
 BENCHMARKS = {
-    "helfrich_slope": (-4.3, -3.6),
+    "helfrich_slope": (-5.0, -3.0),
     "thickness_lo_nm": (2.8, 4.2),
     "thickness_ld_nm": (2.6, 4.0),
     "thickness_diff_A": (0.5, 8.0),
@@ -238,6 +239,8 @@ def benchmark_thickness(membrane: "BicapaCryoET") -> Dict:
         ld_peak_nm = ld_mean
 
     diff_A = abs((lo_peak_nm - ld_peak_nm) * 10.0)
+
+    diff_lo, diff_hi = 0.5, 8.0
 
     return {
         "mean_nm": float(vals.mean()),

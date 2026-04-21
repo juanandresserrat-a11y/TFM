@@ -278,3 +278,121 @@ def generate_polnet_yaml(
 
     print("  -> mrc/%s  (plantilla PolNet lista)" % yaml_name)
     return yaml_path
+
+
+def export_double_gaussian_mrc(
+    membrane: "BicapaCryoET",
+    voxel_angstrom: float = 10.0,
+    bins_xy: int = 55,
+    bins_z: int = 40,
+) -> str:
+    """
+    Exporta la membrana como perfil de doble gaussiana suave para PolNet.
+
+    PolNet modela membranas como perfiles de densidad de doble capa
+    gaussiana (double-layer Gaussian profiles), sin granularidad molecular.
+    Esta funcion genera ese perfil directamente desde la geometria del modelo,
+    mejorando la interoperabilidad con el motor de imagen de PolNet.
+
+    Para cada voxel del volumen, la densidad se calcula como:
+      rho(z) = A_head * [G(z - z_outer, sigma_hg) + G(z - z_inner, sigma_hg)]
+             + A_tail * G(z - z_mid, sigma_tail)
+
+    donde sigma_hg es el ancho del grupo cabeza y sigma_tail el del nucleo,
+    ambos derivados de la geometria media de la bicapa.
+
+    Referencia:
+      Martinez-Sanchez et al. IEEE Trans. Med. Imaging 2024 [PolNet]
+      Peck et al. Nature Methods 2025 [phantom dataset cryo-ET]
+    """
+    from analysis import midplane_map
+
+    g = membrane.geometry
+    z_half = (g.total_thick / 10.0) / 2.0 + 0.5
+
+    x_edges = np.linspace(0, membrane.Lx / 10, bins_xy + 1)
+    y_edges = np.linspace(0, membrane.Ly / 10, bins_xy + 1)
+    z_edges = np.linspace(-z_half, z_half, bins_z + 1)
+    z_centers = 0.5 * (z_edges[:-1] + z_edges[1:])
+
+    z_mid_grid = midplane_map(membrane, bins=bins_xy)
+
+    sigma_hg   = g.total_thick / 10.0 * 0.12
+    sigma_tail = g.hydro_thick  / 10.0 * 0.35
+    A_head = 0.47
+    A_tail = 0.29
+
+    vol = np.zeros((bins_xy, bins_xy, bins_z), dtype=np.float32)
+
+    for ix in range(bins_xy):
+        for iy in range(bins_xy):
+            z_ref   = z_mid_grid[ix, iy] / 10.0
+            z_outer = (g.z_outer / 10.0) - z_ref
+            z_inner = (g.z_inner / 10.0) - z_ref
+
+            for iz, z in enumerate(z_centers):
+                rho  = A_head * np.exp(-0.5 * ((z - z_outer) / sigma_hg) ** 2)
+                rho += A_head * np.exp(-0.5 * ((z - z_inner) / sigma_hg) ** 2)
+                rho += A_tail * np.exp(-0.5 * (z / sigma_tail) ** 2)
+                vol[ix, iy, iz] = rho
+
+    from scipy.ndimage import gaussian_filter
+    vol_smooth = gaussian_filter(vol, sigma=[1.0, 1.0, 0.6])
+    vol_norm   = (vol_smooth / vol_smooth.max() * 255.0).astype(np.float32)
+
+    fname = "bilayer_gaussian_seed%04d.mrc" % membrane.seed
+    path  = os.path.join(_mrc_dir(), fname)
+    with mrcfile.new(path, overwrite=True) as mrc:
+        mrc.set_data(vol_norm.T)
+        mrc.voxel_size = voxel_angstrom
+
+    print("  -> mrc/%s  (perfil doble gaussiana, compatible PolNet)" % fname)
+    return path
+
+
+def export_label_mrc_with_closing(
+    membrane: "BicapaCryoET",
+    voxel_angstrom: float = 10.0,
+    bins_xy: int = 55,
+    bins_z: int = 40,
+) -> str:
+    """
+    Exporta etiquetas semanticas con cierre morfologico 3D.
+
+    Aplica binary_closing de scipy para garantizar conectividad
+    topologica de cada region, evitando discontinuidades espurias
+    causadas por la ondulacion Helfrich en los limites de capa.
+    Requerido para compatibilidad con Surface-Dice loss de MemBrain-seg.
+
+    Referencia:
+      MemBrain-seg: github.com/teamtomo/membrain-seg
+    """
+    from scipy.ndimage import binary_closing
+
+    _, edges = analysis.volumetric_density(membrane, bins_xy=bins_xy, bins_z=bins_z)
+    cz = 0.5 * (edges[2][:-1] + edges[2][1:])
+    g  = membrane.geometry
+
+    hg_half_o = (g.z_outer - g.hydro_thick / 2.0) / 10.0
+    hg_half_i = (g.z_inner + g.hydro_thick / 2.0) / 10.0
+
+    labels = np.zeros((bins_xy, bins_xy, bins_z), dtype=np.uint8)
+    for iz, z in enumerate(cz):
+        if z > hg_half_o:    labels[:, :, iz] = 1
+        elif z < hg_half_i:  labels[:, :, iz] = 3
+        else:                labels[:, :, iz] = 2
+
+    struct = np.ones((3, 3, 2), dtype=bool)
+    for label_val in [1, 2, 3]:
+        mask   = (labels == label_val)
+        closed = binary_closing(mask, structure=struct, iterations=1)
+        labels[closed & (labels == 0)] = label_val
+
+    fname = "bilayer_seed%04d_labels_closed.mrc" % membrane.seed
+    path  = os.path.join(_mrc_dir(), fname)
+    with mrcfile.new(path, overwrite=True) as mrc:
+        mrc.set_data(labels.T.astype(np.float32))
+        mrc.voxel_size = voxel_angstrom
+
+    print("  -> mrc/%s  (labels con closing morfologico)" % fname)
+    return path

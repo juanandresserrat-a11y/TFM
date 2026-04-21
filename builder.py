@@ -408,8 +408,18 @@ class BicapaCryoET:
         """
         Construye la bicapa completa.
 
-        La semilla controla toda la aleatoriedad: composición (Dirichlet),
+        La semilla controla toda la aleatoriedad: composicion (Dirichlet),
         curvatura Helfrich, posiciones y dominios.
+
+        NOTA — Dominios raft como snapshot estatico:
+        Los dominios Lo ('rafts') se generan mediante nucleacion geometrica
+        estocastica, NO mediante simulacion de separacion de fases
+        termodinamica. Esta aproximacion produce morfologias plausibles pero
+        no representa el equilibrio termodinamico real de mezclas PC/SM/CHOL,
+        que en modelos coarse-grained requiere microsegundos para alcanzar
+        equilibrio. Referencia: Liu, de Vries, Pezeshkian & Marrink,
+        J. Chem. Theory Comput. 2021, doi:10.1021/acs.jctc.1c00151.
+        Los dominios deben interpretarse como snapshots estaticos aproximados.
 
         Retorna self para encadenamiento: b = BicapaCryoET(...).build()
         """

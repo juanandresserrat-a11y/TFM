@@ -51,6 +51,7 @@ CHANNEL_DESCRIPTIONS = {
     "ch9":  "slice_xz_cryoET",
     "ch10": "parametro_orden_S_CH [7,8]",
     "ch11": "interdigitacion_trans_leaflet [9]",
+    "ch12": "prior_limpio_densidad_electronica_sin_CTF_ni_ruido",
 }
 
 REFERENCES = [
@@ -102,6 +103,14 @@ def export_training(membrane: "BicapaCryoET", bins: int = 64) -> str:
     }
     Hxz, _, _ = analysis.xz_projection(membrane, bx=bins * 2, bz=bins)
     channels["ch9_xz_slice"] = Hxz
+
+    try:
+        from electron_density import electron_density_projection
+        channels["ch12_prior_clean"] = electron_density_projection(
+            membrane, bins_xy=bins, sigma=0.8
+        )
+    except Exception:
+        pass
 
 
     for name, arr in channels.items():
